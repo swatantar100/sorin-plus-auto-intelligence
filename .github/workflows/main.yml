@@ -1,0 +1,86 @@
+name: Sorin's Plus-Auto.ro Intelligence Agent
+
+on:
+  schedule:
+    # Run every Sunday at 6 AM Bucharest time (4 AM UTC)
+    - cron: '0 4 * * 0'
+  workflow_dispatch: # Manual trigger for testing
+
+jobs:
+  run-sorin-intelligence-agent:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Sorin's agent
+      uses: actions/checkout@v3
+      
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4 pandas asyncio
+        
+    - name: Create Sorin's agent config
+      run: |
+        echo '{
+          "agent_info": {
+            "name": "Sorin Balan Plus-Auto.ro Intelligence Agent",
+            "version": "1.0.0-github",
+            "owner": "Sorin Balan",
+            "email": "sorin.balan@olx.ro",
+            "created": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+          },
+          "analysis": {
+            "target_url": "https://plus-auto.ro",
+            "pages_to_analyze": ["/", "/autoturisme/", "/autoturisme/?page=2", "/autoturisme/?page=10"],
+            "dealers_to_track": [
+              "autodel", "autoruler", "san-auto", "autorulateleasing", 
+              "wow-auto-rulate", "vest-garage-auto", "corect-automobile-prahova"
+            ]
+          },
+          "intelligence": {
+            "insight_confidence_threshold": 0.75,
+            "max_insights_per_report": 12,
+            "report_style": "executive"
+          },
+          "reporting": {
+            "schedule": "weekly",
+            "delivery_day": "sunday", 
+            "delivery_time": "06:00",
+            "timezone": "Europe/Bucharest",
+            "subject_prefix": "Plus-Auto.ro Competitive Intelligence"
+          },
+          "email": {
+            "smtp_server": "smtp.gmail.com",
+            "smtp_port": 587,
+            "sender_email": "sorin.balan@olx.ro",
+            "sender_password": "${{ secrets.SORIN_EMAIL_PASSWORD }}",
+            "recipients": ["sorin.balan@olx.ro"]
+          },
+          "storage": {
+            "database_path": "sorin_intelligence_agent.db",
+            "reports_directory": "intelligence_reports/"
+          }
+        }' > your_agent_config_updated.json
+        
+    - name: Run Sorin's intelligence agent
+      run: python your_toqan_agent.py your_agent_config_updated.json
+      
+    - name: Upload Sorin's intelligence reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: sorin-plus-auto-intelligence
+        path: |
+          intelligence_reports/
+          sorin_intelligence_agent.db
+          agent_logs/
+          
+    - name: Notify completion
+      run: |
+        echo "✅ Plus-Auto.ro intelligence analysis completed for Sorin Balan"
+        echo "📧 Report sent to sorin.balan@olx.ro"
+        echo "📊 Competitive intelligence updated"
