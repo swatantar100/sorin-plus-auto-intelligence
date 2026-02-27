@@ -12,7 +12,7 @@ jobs:
     
     steps:
     - name: Checkout Sorin's agent
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Set up Python 3.9
       uses: actions/setup-python@v4
@@ -37,7 +37,7 @@ jobs:
           "analysis": {
             "target_url": "https://plus-auto.ro",
             "pages_to_analyze": ["/", "/autoturisme/", "/autoturisme/?page=2", "/autoturisme/?page=10"],
-            "dealers_to_track": [
+          "dealers_to_track": [
               "autodel", "autoruler", "san-auto", "autorulateleasing", 
               "wow-auto-rulate", "vest-garage-auto", "corect-automobile-prahova"
             ]
@@ -71,7 +71,7 @@ jobs:
       run: python your_toqan_agent.py your_agent_config_updated.json
       
     - name: Upload Sorin's intelligence reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sorin-plus-auto-intelligence
         path: |
