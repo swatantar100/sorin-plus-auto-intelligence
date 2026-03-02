@@ -1,0 +1,134 @@
+name: Plus-Auto Debug Test
+on:
+  workflow_dispatch:  # Manual trigger only for debugging
+
+jobs:
+  debug-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Python  
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas lxml html5lib
+          pip list  # Show what's installed
+          
+      - name: Check Python files exist
+        run: |
+          echo "=== Checking files ==="
+          ls -la
+          echo "=== Looking for agent file ==="
+          find . -name "*agent*.py" -type f
+          echo "=== Current directory structure ==="
+          tree . || find . -type f
+          
+      - name: Test Python syntax
+        run: |
+          echo "=== Testing Python syntax ==="
+          if [ -f "your_toqan_agent_corrected_validation.py" ]; then
+            python -m py_compile your_toqan_agent_corrected_validation.py
+            echo "✅ Syntax check passed"
+          else
+            echo "❌ Agent file not found"
+            exit 1
+          fi
+          
+      - name: Test basic imports
+        run: |
+          echo "=== Testing imports ==="
+          python -c "
+import requests
+import json  
+import sqlite3
+from datetime import datetime
+from bs4 import BeautifulSoup
+import re
+print('✅ All imports successful')
+"
+          
+      - name: Test minimal agent initialization
+        run: |
+          echo "=== Testing agent initialization ==="
+          python -c "
+import sys
+sys.path.append('.')
+try:
+    from your_toqan_agent_corrected_validation import YourToqanAgent
+    print('✅ Agent import successful')
+    agent = YourToqanAgent()
+    print('✅ Agent initialization successful')
+except Exception as e:
+    print(f'❌ Agent error: {e}')
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+"
+          
+      - name: Test environment variables
+        run: |
+          echo "=== Checking environment variables ==="
+          echo "EMAIL_PASSWORD: $([ -n '$EMAIL_PASSWORD' ] && echo 'Set ✅' || echo 'Missing ❌')"
+          echo "SENDER_EMAIL: $([ -n '$SENDER_EMAIL' ] && echo 'Set ✅' || echo 'Missing ❌')" 
+          echo "RECIPIENT_EMAIL: $([ -n '$RECIPIENT_EMAIL' ] && echo 'Set ✅' || echo 'Missing ❌')"
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          
+      - name: Create minimal test script
+        run: |
+          cat > test_minimal.py << 'EOF'
+import requests
+from datetime import datetime
+import json
+
+print("🧪 Minimal test starting...")
+
+try:
+    # Test basic web request
+    print("📡 Testing basic web request...")
+    response = requests.get("https://httpbin.org/get", timeout=10)
+    print(f"✅ Web request successful: {response.status_code}")
+    
+    # Test plus-auto.ro accessibility
+    print("🌐 Testing plus-auto.ro accessibility...")
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    response = requests.get("https://plus-auto.ro/", headers=headers, timeout=15)
+    print(f"✅ Plus-auto.ro response: {response.status_code}")
+    print(f"📄 Content length: {len(response.text)} characters")
+    
+    if "autoturisme" in response.text.lower():
+        print("✅ Romanian content detected - not blocked")
+    else:
+        print("⚠️ No Romanian content detected")
+    
+    print("✅ Minimal test completed successfully")
+    
+except Exception as e:
+    print(f"❌ Test failed: {e}")
+    import traceback
+    traceback.print_exc()
+    exit(1)
+EOF
+          
+      - name: Run minimal test
+        run: python test_minimal.py
+        
+      - name: Upload all logs and files (if any step failed)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs
+          path: |
+            *.log
+            *.py
+            test_minimal.py
+          if-no-files-found: ignore
